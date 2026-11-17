@@ -24,7 +24,10 @@ final class Input<I> {
   }
 
   final List<Field<Object?>> _fields;
-  final I Function(List<Object?> values) _make;
+
+  /// Makes the [I], reading each field with `read`, which gives back a
+  /// field's value at the field's own type, so no value is cast.
+  final I Function(T Function<T>(Field<T> field) read) _make;
 
   /// The JSON Schema of the object, built from the fields and frozen.
   late final JsonObject schema = JsonObject.of(_schema()).deepFrozen();
@@ -55,27 +58,27 @@ final class Input<I> {
         );
       }
     }
-    return _make([for (final f in _fields) f._readIn(json, _path(at, f.name))]);
+    return _make(<T>(Field<T> f) => f._readIn(json, _path(at, f.name)));
   }
 
   /// An object with no fields, for a tool that takes nothing.
   static final none = Input<()>._(const [], (_) => ());
 
   /// One field, whose value is the input.
-  static Input<A> field<A>(Field<A> a) => Input._([a], (v) => v[0] as A);
+  static Input<A> field<A>(Field<A> a) => Input._([a], (read) => read(a));
 
   static Input<I> fields2<A, B, I>(
     Field<A> a,
     Field<B> b,
     I Function(A, B) make,
-  ) => Input._([a, b], (v) => make(v[0] as A, v[1] as B));
+  ) => Input._([a, b], (read) => make(read(a), read(b)));
 
   static Input<I> fields3<A, B, C, I>(
     Field<A> a,
     Field<B> b,
     Field<C> c,
     I Function(A, B, C) make,
-  ) => Input._([a, b, c], (v) => make(v[0] as A, v[1] as B, v[2] as C));
+  ) => Input._([a, b, c], (read) => make(read(a), read(b), read(c)));
 
   static Input<I> fields4<A, B, C, D, I>(
     Field<A> a,
@@ -83,12 +86,8 @@ final class Input<I> {
     Field<C> c,
     Field<D> d,
     I Function(A, B, C, D) make,
-  ) => Input._([
-    a,
-    b,
-    c,
-    d,
-  ], (v) => make(v[0] as A, v[1] as B, v[2] as C, v[3] as D));
+  ) =>
+      Input._([a, b, c, d], (read) => make(read(a), read(b), read(c), read(d)));
 
   static Input<I> fields5<A, B, C, D, E, I>(
     Field<A> a,
@@ -103,7 +102,7 @@ final class Input<I> {
     c,
     d,
     e,
-  ], (v) => make(v[0] as A, v[1] as B, v[2] as C, v[3] as D, v[4] as E));
+  ], (read) => make(read(a), read(b), read(c), read(d), read(e)));
 
   static Input<I> fields6<A, B, C, D, E, F, I>(
     Field<A> a,
@@ -113,11 +112,14 @@ final class Input<I> {
     Field<E> e,
     Field<F> f,
     I Function(A, B, C, D, E, F) make,
-  ) => Input._(
-    [a, b, c, d, e, f],
-    (v) =>
-        make(v[0] as A, v[1] as B, v[2] as C, v[3] as D, v[4] as E, v[5] as F),
-  );
+  ) => Input._([
+    a,
+    b,
+    c,
+    d,
+    e,
+    f,
+  ], (read) => make(read(a), read(b), read(c), read(d), read(e), read(f)));
 
   static Input<I> fields7<A, B, C, D, E, F, G, I>(
     Field<A> a,
@@ -130,15 +132,8 @@ final class Input<I> {
     I Function(A, B, C, D, E, F, G) make,
   ) => Input._(
     [a, b, c, d, e, f, g],
-    (v) => make(
-      v[0] as A,
-      v[1] as B,
-      v[2] as C,
-      v[3] as D,
-      v[4] as E,
-      v[5] as F,
-      v[6] as G,
-    ),
+    (read) =>
+        make(read(a), read(b), read(c), read(d), read(e), read(f), read(g)),
   );
 
   static Input<I> fields8<A, B, C, D, E, F, G, H, I>(
@@ -153,15 +148,15 @@ final class Input<I> {
     I Function(A, B, C, D, E, F, G, H) make,
   ) => Input._(
     [a, b, c, d, e, f, g, h],
-    (v) => make(
-      v[0] as A,
-      v[1] as B,
-      v[2] as C,
-      v[3] as D,
-      v[4] as E,
-      v[5] as F,
-      v[6] as G,
-      v[7] as H,
+    (read) => make(
+      read(a),
+      read(b),
+      read(c),
+      read(d),
+      read(e),
+      read(f),
+      read(g),
+      read(h),
     ),
   );
 }

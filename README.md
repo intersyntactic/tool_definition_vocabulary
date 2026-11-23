@@ -1,6 +1,6 @@
 # is_tools_api
 
-An intersyntactic tool's definition, as a host offers it to a model: its
+An intersyntactic tool's definition, as it is offered to a model: its
 name, description and input, and the types of what a call takes and returns.
 A tool package depends on this, and on nothing else of intersyntactic's: not
 the model client, not the airlock, not the path checks. So a tool's
@@ -36,7 +36,7 @@ so the rules the model is told are the rules it is held to.
 - `ToolSpec<I, O>`: a tool's name, description and `input`, and the types of
   what a call takes, `I`, and returns, `O`. `toJson()` is the definition in
   the Messages API's tool shape, and `wireBytes` its size in a request.
-  `concurrent` says whether a host may carry out the tool's calls beside
+  `concurrent` says whether the tool's calls may be carried out beside
   other calls; it is never sent.
 - `Input<I>`: the object a tool takes, described once. `schema` is its JSON
   Schema, built from its fields and frozen all the way down; `read` turns the

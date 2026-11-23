@@ -47,6 +47,12 @@ so the rules the model is told are the rules it is held to.
   values, in order, to a function that makes the `I`. Dart has no type for
   "any number of fields", so the count is in the name, as in Elm's JSON
   decoders.
+- `Input.parse(schema)`: the `Input` a schema describes, read back from the
+  JSON Schema that `Input.schema` writes, for a tool sent as data rather
+  than as Dart. It accepts and refuses what the writer's `Input` does, names
+  the same field when it refuses, and reads a call as a `JsonObject`: a
+  default in place of an absent field, nothing for an absent optional one.
+  A schema an `Input` does not write gives null, never a best guess.
 - `Field<T>`: a name, a `Schema<T>` and a description. Required as made;
   `Field.optional` reads an absent or null field as null, and
   `Field.orDefault` reads it as a value the schema also shows the model as

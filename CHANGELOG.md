@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+- `Input.parse` reads back the JSON Schema that `Input.schema` writes, as an
+  `Input<JsonObject>` that accepts and refuses what the writer's `Input` does
+  and names the same field when it refuses. It reads a call as JSON: a
+  default in place of an absent field, and nothing for an absent optional
+  one. Any schema an `Input` does not write gives null.
+- `Field.orDefault` throws an `ArgumentError` for a default its own schema
+  refuses, such as `0` for `Schema.integer(minimum: 1)`.
+
 ## 0.2.1
 
 - Exports checked_json's `JsonObject` and `JsonFieldException`, and nothing

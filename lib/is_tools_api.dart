@@ -1,8 +1,8 @@
-/// A tool's definition, as a host offers it to a model: its name,
+/// A tool's definition, as it is offered to a model: its name,
 /// description, input and output, and the types of what a call takes and
 /// returns.
 ///
-/// A host chooses which tools to expose, in its kit. The code that answers a
+/// Which tools a model is offered is chosen in a kit. The code that answers a
 /// call, and what a call reports while it runs, are the airlock's, so this
 /// library holds no kit, scheduling, model client, runs or effects: only the
 /// definition.
@@ -45,7 +45,7 @@ class ToolSpec<I, O> {
   /// What a call returns, as the model is shown it.
   final Output<O> output;
 
-  /// Whether a host may carry out this tool's calls alongside other calls in
+  /// Whether this tool's calls may be carried out alongside other calls in
   /// the same batch. False by default: writes must not race reads or other
   /// writes. This is execution metadata, not part of the rendered definition.
   final bool concurrent;
@@ -61,7 +61,7 @@ class ToolSpec<I, O> {
   /// [input]'s JSON Schema, frozen all the way down.
   JsonObject get inputSchema => input.schema;
 
-  /// The definition rendered by hosts that use the Messages tool shape.
+  /// The definition in the Messages API's tool shape.
   JsonObject toJson() => .of({
     'name': name,
     'description': description,

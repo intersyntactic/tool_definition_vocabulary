@@ -10,7 +10,7 @@ final echo = ToolSpec<String, String>(
 );
 
 void main() {
-  // What a host sends the model, and what it costs in a request.
+  // What the model is sent, and what it costs in a request.
   print(jsonEncode(echo.toJson()));
   print('${echo.wireBytes} bytes');
 

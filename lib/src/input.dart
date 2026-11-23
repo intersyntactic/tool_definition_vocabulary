@@ -61,6 +61,52 @@ final class Input<I> {
     return _make(<T>(Field<T> f) => f._readIn(json, _path(at, f.name)));
   }
 
+  /// The input [schema] describes, if it is one an [Input] writes; null for
+  /// any other schema, rather than a reading of it.
+  ///
+  /// Read as an object holding each field's value as JSON: a default in
+  /// place of an absent field, and nothing for an absent optional one. It
+  /// accepts and refuses what the [Input] that wrote [schema] does, and names
+  /// the same field when it refuses.
+  static Input<JsonObject>? parse(JsonObject schema) {
+    if (!_only(schema, const {
+          'type',
+          'properties',
+          'required',
+          'additionalProperties',
+        }) ||
+        _JsonType.of(schema) != _JsonType.object ||
+        schema.raw('additionalProperties') != false) {
+      return null;
+    }
+    final properties = JsonObject.parse(schema.raw('properties'));
+    final required = switch (schema.raw('required')) {
+      final List<Object?> l => l,
+      _ => null,
+    };
+    if (properties == null || required == null) return null;
+    final requiredNames = <String>{};
+    for (final name in required) {
+      if (name is! String || !properties.has(name)) return null;
+      if (!requiredNames.add(name)) return null;
+    }
+    final fields = <Field<Object?>>[];
+    for (final name in properties.keys) {
+      final field = Field._parse(
+        name,
+        properties.raw(name),
+        required: requiredNames.contains(name),
+      );
+      if (field == null) return null;
+      fields.add(field);
+    }
+    return Input._(
+      fields,
+      (read) =>
+          JsonObject.unmodifiable({for (final f in fields) f.name: ?read(f)}),
+    );
+  }
+
   /// An object with no fields, for a tool that takes nothing.
   static final none = Input<()>._(const [], (_) => ());
 
@@ -196,7 +242,8 @@ final class Field<T> {
   );
 
   /// A field the model may leave out, read as [value] when it does. The
-  /// schema shows the model [value] as the field's `default`.
+  /// schema shows the model [value] as the field's `default`, which must be a
+  /// value [schema] accepts.
   static Field<T> orDefault<T>(
     String name,
     Schema<T> schema,
@@ -210,6 +257,11 @@ final class Field<T> {
           'name',
           'is an object, which has no JSON form for a default',
         ));
+    try {
+      schema._read(write(value), name);
+    } on JsonFieldException catch (e) {
+      throw ArgumentError.value(value, 'value', 'is not ${e.wanted}');
+    }
     return Field._(
       name,
       {...schema._json, 'description': ?description, 'default': write(value)},
@@ -229,6 +281,38 @@ final class Field<T> {
     null => _readAbsent(at),
     final value => _readPresent(value, at),
   };
+
+  /// The field [property] describes, as [Field], [Field.optional] or
+  /// [Field.orDefault] writes it; null for any other property.
+  static Field<Object?>? _parse(
+    String name,
+    Object? property, {
+    required bool required,
+  }) {
+    final json = JsonObject.parse(property);
+    if (json == null) return null;
+    if (json.has('description') && json.raw('description') is! String) {
+      return null;
+    }
+    final description = json.stringOrNull('description');
+    final schema = Schema._parse(
+      json.without(const ['description', 'default']),
+    );
+    if (schema == null) return null;
+    if (!json.has('default')) {
+      return required
+          ? Field(name, schema, description: description)
+          : Field.optional<Object?>(name, schema, description: description);
+    }
+    if (required || schema._write == null) return null;
+    final Object? value;
+    try {
+      value = schema._read(json.raw('default'), name);
+    } on JsonFieldException {
+      return null;
+    }
+    return Field.orDefault(name, schema, value, description: description);
+  }
 }
 
 /// One JSON value: the JSON Schema that describes it and the reader that
@@ -307,18 +391,22 @@ final class Schema<T> {
   );
 
   /// One of [values], sent as its [Enum.name].
-  static Schema<E> choice<E extends Enum>(List<E> values) {
-    final wanted = 'one of ${values.map((e) => e.name).join(', ')}';
+  static Schema<E> choice<E extends Enum>(List<E> values) =>
+      _oneOf(values, (e) => e.name);
+
+  /// One of [values], sent as its [name].
+  static Schema<T> _oneOf<T>(List<T> values, String Function(T) name) {
+    final wanted = 'one of ${values.map(name).join(', ')}';
     return Schema._(
       {
         'type': 'string',
-        'enum': [for (final e in values) e.name],
+        'enum': [for (final e in values) name(e)],
       },
       wanted,
       (v, at) =>
-          values.where((e) => e.name == v).firstOrNull ??
+          values.where((e) => name(e) == v).firstOrNull ??
           (throw JsonFieldException(at, wanted)),
-      (e) => e.name,
+      name,
     );
   }
 
@@ -364,7 +452,103 @@ final class Schema<T> {
     ),
     null,
   );
+
+  /// The value [json] describes, as one of the methods above writes it; null
+  /// for any other schema. Read as JSON.
+  static Schema<Object?>? _parse(JsonObject json) {
+    int? whole(String k) => wholeNumber(json.raw(k));
+    num? finite(String k) => switch (json.raw(k)) {
+      final num n when n.isFinite => n,
+      _ => null,
+    };
+    // Whether each of [keys] is absent or reads as non-null.
+    bool fits(List<String> keys, Object? Function(String) read) =>
+        keys.every((k) => !json.has(k) || read(k) != null);
+    // Whether [json] holds only `type` and [keys], each of which reads.
+    bool only(Set<String> keys, Object? Function(String) read) =>
+        _only(json, {'type', ...keys}) && fits([...keys], read);
+
+    return switch (_JsonType.of(json)) {
+      _JsonType.string when json.has('enum') =>
+        _only(json, const {'type', 'enum'})
+            ? switch (json.raw('enum')) {
+                final List<Object?> l when l.every((x) => x is String) =>
+                  _asJson(
+                    _oneOf([
+                      for (final x in l)
+                        if (x is String) x,
+                    ], (s) => s),
+                  ),
+                _ => null,
+              }
+            : null,
+      _JsonType.string when only(const {'minLength', 'maxLength'}, whole) =>
+        _asJson(
+          string(minLength: whole('minLength'), maxLength: whole('maxLength')),
+        ),
+      _JsonType.integer when only(const {'minimum', 'maximum'}, whole) =>
+        _asJson(integer(minimum: whole('minimum'), maximum: whole('maximum'))),
+      _JsonType.number when only(const {'minimum', 'maximum'}, finite) =>
+        _asJson(number(minimum: finite('minimum'), maximum: finite('maximum'))),
+      _JsonType.boolean when _only(json, const {'type'}) => _asJson(boolean()),
+      _JsonType.array
+          when _only(json, const {'type', 'items', 'minItems', 'maxItems'}) &&
+              fits(const ['minItems', 'maxItems'], whole) =>
+        switch (JsonObject.parse(json.raw('items'))) {
+          final itemsJson? => switch (_parse(itemsJson)) {
+            final items? => _asJson(
+              list(
+                items,
+                minItems: whole('minItems'),
+                maxItems: whole('maxItems'),
+              ),
+              hasJsonForm: items._write != null,
+            ),
+            null => null,
+          },
+          null => null,
+        },
+      _JsonType.object => switch (Input.parse(json)) {
+        final fields? => _asJson(object(fields), hasJsonForm: false),
+        null => null,
+      },
+      _JsonType.string ||
+      _JsonType.integer ||
+      _JsonType.number ||
+      _JsonType.boolean ||
+      _JsonType.array ||
+      null => null,
+    };
+  }
+
+  /// [schema], whose reader gives a JSON value, as a schema of JSON values:
+  /// a value it reads is already its own JSON form, if it has one.
+  static Schema<Object?> _asJson<T>(
+    Schema<T> schema, {
+    bool hasJsonForm = true,
+  }) => Schema._(
+    schema._json,
+    schema._wanted,
+    schema._read,
+    hasJsonForm ? (v) => v : null,
+  );
 }
+
+/// The JSON Schema types an [Input] writes, by their JSON Schema names.
+enum _JsonType {
+  string,
+  integer,
+  number,
+  boolean,
+  array,
+  object;
+
+  static _JsonType? of(JsonObject json) =>
+      _JsonType.values.asNameMap()[json.raw('type')];
+}
+
+/// Whether [json] has no key outside [keys].
+bool _only(JsonObject json, Set<String> keys) => json.keys.every(keys.contains);
 
 String _path(String at, String name) => at.isEmpty ? name : '$at.$name';
 

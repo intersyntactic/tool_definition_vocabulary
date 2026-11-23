@@ -9,6 +9,17 @@
   one. Any schema an `Input` does not write gives null.
 - `Field.orDefault` throws an `ArgumentError` for a default its own schema
   refuses, such as `0` for `Schema.integer(minimum: 1)`.
+- `OneActionTool`: a tool sent as data whose steps are one proposed action
+  (stage 1 of agent_loop's tools-as-data design). It holds a name,
+  description, input, `bound` values and the `ActionName` it proposes with
+  its arguments, each a `BoundReference`, an `InputReference` or a
+  `Literal`. `parse` reads the JSON `toJson` writes and gives null for
+  anything else, including an input reference to a field that is optional
+  or that holds a number, list or object. `argumentsFor` fills in one call's
+  arguments, and refuses a call whose referenced value is no literal, such
+  as a string over 64 KiB.
+- `Input.namesAlwaysReadAsStringIntegerOrBoolean`: the fields every read
+  gives a string, whole number or boolean for.
 
 ## 0.2.1
 

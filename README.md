@@ -53,6 +53,17 @@ so the rules the model is told are the rules it is held to.
   the same field when it refuses, and reads a call as a `JsonObject`: a
   default in place of an absent field, nothing for an absent optional one.
   A schema an `Input` does not write gives null, never a best guess.
+- `OneActionTool`: a tool sent as data whose steps are one proposed action.
+  On the wire it is `name`, `description`, `input_schema`, `bound` (values a
+  person fixed, such as a drive's id) and `steps`:
+  `["propose", <action>, <argument>…]`, where each argument is
+  `["bound", k]`, `["input", k]` or a literal string, whole number or
+  boolean, so every string is literal text. A reference is checked when the
+  tool is made: an input reference may name only a field that is required or
+  has a default, so no argument is ever missing from a call. `argumentsFor`
+  fills in one call's arguments. Unlike `ToolSpec`, it carries no Dart
+  function, output or `concurrent` flag: the action renders what the model
+  reads, and the airlock decides every effect.
 - `Field<T>`: a name, a `Schema<T>` and a description. Required as made;
   `Field.optional` reads an absent or null field as null, and
   `Field.orDefault` reads it as a value the schema also shows the model as

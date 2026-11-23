@@ -22,6 +22,7 @@ export 'package:checked_json/checked_json.dart'
     show JsonFieldException, JsonObject;
 
 export 'src/input.dart';
+export 'src/one_action_tool.dart';
 export 'src/output.dart';
 
 /// One tool's definition: its name, description, [input] and [output], and

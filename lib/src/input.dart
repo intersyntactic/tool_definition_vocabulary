@@ -32,12 +32,19 @@ final class Input<I> {
   /// The JSON Schema of the object, built from the fields and frozen.
   late final JsonObject schema = JsonObject.of(_schema()).deepFrozen();
 
+  /// The names of the fields every [read] gives a value for: the required
+  /// ones and the ones with a default.
+  late final Set<String> namesAlwaysRead = Set.unmodifiable({
+    for (final f in _fields)
+      if (f._presence != _Presence.optional) f.name,
+  });
+
   Map<String, Object?> _schema() => {
     'type': 'object',
     'properties': {for (final f in _fields) f.name: f._property},
     'required': [
       for (final f in _fields)
-        if (f._required) f.name,
+        if (f._presence == _Presence.required) f.name,
     ],
     'additionalProperties': false,
   };
@@ -216,14 +223,14 @@ final class Input<I> {
 final class Field<T> {
   Field(this.name, Schema<T> schema, {String? description})
     : _property = {...schema._json, 'description': ?description},
-      _required = true,
+      _presence = _Presence.required,
       _readPresent = schema._read,
       _readAbsent = ((at) => throw JsonFieldException(at, schema._wanted));
 
   Field._(
     this.name,
     this._property,
-    this._required,
+    this._presence,
     this._readPresent,
     this._readAbsent,
   );
@@ -236,7 +243,7 @@ final class Field<T> {
   }) => Field._(
     name,
     {...schema._json, 'description': ?description},
-    false,
+    _Presence.optional,
     schema._read,
     (_) => null,
   );
@@ -265,7 +272,7 @@ final class Field<T> {
     return Field._(
       name,
       {...schema._json, 'description': ?description, 'default': write(value)},
-      false,
+      _Presence.defaulted,
       schema._read,
       (_) => value,
     );
@@ -273,7 +280,7 @@ final class Field<T> {
 
   final String name;
   final Map<String, Object?> _property;
-  final bool _required;
+  final _Presence _presence;
   final T Function(Object? value, String at) _readPresent;
   final T Function(String at) _readAbsent;
 
@@ -532,6 +539,18 @@ final class Schema<T> {
     schema._read,
     hasJsonForm ? (v) => v : null,
   );
+}
+
+/// What a field's reader does when the field is absent.
+enum _Presence {
+  /// Refuses the object.
+  required,
+
+  /// Reads the field as null.
+  optional,
+
+  /// Reads the field as its default.
+  defaulted,
 }
 
 /// The JSON Schema types an [Input] writes, by their JSON Schema names.

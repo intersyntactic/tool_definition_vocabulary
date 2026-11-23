@@ -14,8 +14,9 @@ import 'input.dart';
 /// `["bound", k]`, an input field `["input", k]` or a literal, so every
 /// string is literal text. A reference is checked when the tool is made: a
 /// bound name against [bound], and an input name against the fields every
-/// read of [input] gives a value for, so an argument is never missing when a
-/// call is carried out.
+/// read of [input] gives a string, whole number or boolean for. So every
+/// argument is in the same set as a [Literal], and none is ever missing when
+/// a call is carried out.
 final class OneActionTool {
   OneActionTool._(
     this.name,
@@ -37,20 +38,21 @@ final class OneActionTool {
   /// never sends them.
   final Map<String, Literal> bound;
 
-  /// The name of the action the tool proposes.
-  final String action;
+  /// The action the tool proposes.
+  final ActionName action;
 
   final List<ActionArgument> arguments;
 
   /// The tool made in Dart, from the [input] its module built. An
-  /// [ArgumentError] for an empty [name] or [action], or a reference that
-  /// names no bound value or no field every read gives a value for.
+  /// [ArgumentError] for an empty [name], or a reference that names no bound
+  /// value or no field every read gives a string, whole number or boolean
+  /// for.
   factory OneActionTool.of({
     required String name,
     required String description,
     required Input<Object?> input,
     Map<String, Literal> bound = const {},
-    required String action,
+    required ActionName action,
     required List<ActionArgument> arguments,
   }) {
     final tool = OneActionTool._(
@@ -92,7 +94,11 @@ final class OneActionTool {
       bound[k] = value;
     }
     final propose = switch (steps) {
-      [_Form.propose, final String action, ...final rest] => (action, rest),
+      [_Form.propose, final String action, ...final rest] =>
+        switch (ActionName.parse(action)) {
+          final action? => (action, rest),
+          null => null,
+        },
       _ => null,
     };
     if (propose == null) return null;
@@ -125,15 +131,14 @@ final class OneActionTool {
   /// Why this tool is not a valid one, or null when it is.
   String? _problem() {
     if (name.isEmpty) return 'the name is empty';
-    if (action.isEmpty) return 'the action is empty';
     for (final a in arguments) {
       switch (a) {
         case BoundReference(:final name) when !bound.containsKey(name):
           return '`$name` is not a bound value';
         case InputReference(:final name)
-            when !input.namesAlwaysRead.contains(name):
-          return '`$name` is not an input field that is required or has a '
-              'default';
+            when !input.namesAlwaysReadAsStringIntegerOrBoolean.contains(name):
+          return '`$name` is not an input field of a string, whole number or '
+              'boolean that is required or has a default';
         case BoundReference() || InputReference() || Literal():
       }
     }
@@ -141,7 +146,9 @@ final class OneActionTool {
   }
 
   /// The action's arguments for one call: [call] read by [input], with each
-  /// reference filled in. A [JsonFieldException] if [input] refuses [call].
+  /// reference filled in. A [JsonFieldException] if [input] refuses [call],
+  /// or if a field it names is a value no [Literal] can be, such as a string
+  /// over 64 KiB.
   List<Object> argumentsFor(JsonObject call) {
     final read = input.read(call);
     return [
@@ -149,7 +156,12 @@ final class OneActionTool {
         switch (a) {
           // Both kinds of reference were checked when the tool was made.
           BoundReference(:final name) => bound[name]!.json,
-          InputReference(:final name) => read.raw(name)!,
+          InputReference(:final name) =>
+            Literal.parse(read.raw(name))?.json ??
+                (throw JsonFieldException(
+                  name,
+                  Literal._wanted(read.raw(name)),
+                )),
           Literal(:final json) => json,
         },
     ];
@@ -162,8 +174,37 @@ final class OneActionTool {
     'bound': {
       for (final MapEntry(:key, :value) in bound.entries) key: value.json,
     },
-    'steps': [_Form.propose, action, for (final a in arguments) a._json],
+    'steps': [_Form.propose, action.text, for (final a in arguments) a._json],
   });
+}
+
+/// The name of an action a tool proposes: letters, digits, `_` and `-`,
+/// such as `readDocument` or `make-web-requests`. The agent loop maps it to
+/// the program the airlock runs.
+final class ActionName {
+  ActionName._(this.text);
+
+  final String text;
+
+  /// An [ArgumentError] for a name with any other character, or none.
+  factory ActionName.of(String text) =>
+      parse(text) ??
+      (throw ArgumentError.value(text, 'text', 'is not an action name'));
+
+  /// [text] as an action name; null if it has any other character, or none.
+  static ActionName? parse(String text) =>
+      _pattern.hasMatch(text) ? ActionName._(text) : null;
+
+  static final _pattern = RegExp(r'^[A-Za-z0-9_-]+$');
+
+  @override
+  bool operator ==(Object other) => other is ActionName && other.text == text;
+
+  @override
+  int get hashCode => text.hashCode;
+
+  @override
+  String toString() => text;
 }
 
 /// One argument of a proposed action, as `steps` spells it.
@@ -226,6 +267,12 @@ final class Literal extends ActionArgument {
       final n? when n > -_twoTo53 && n < _twoTo53 => Literal._(n),
       _ => null,
     },
+  };
+
+  /// What [value], which no literal can be, should have been, as a phrase.
+  static String _wanted(Object? value) => switch (value) {
+    String() => 'a string of at most 64 KiB in UTF-8',
+    _ => 'a whole number within ±2^53',
   };
 
   @override

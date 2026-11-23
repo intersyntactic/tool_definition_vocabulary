@@ -59,9 +59,12 @@ so the rules the model is told are the rules it is held to.
   `["propose", <action>, <argument>…]`, where each argument is
   `["bound", k]`, `["input", k]` or a literal string, whole number or
   boolean, so every string is literal text. A reference is checked when the
-  tool is made: an input reference may name only a field that is required or
-  has a default, so no argument is ever missing from a call. `argumentsFor`
-  fills in one call's arguments. Unlike `ToolSpec`, it carries no Dart
+  tool is made: an input reference may name only a string, whole number or
+  boolean field that is required or has a default, so no argument is ever
+  missing from a call or outside the literal set. `argumentsFor` fills in one
+  call's arguments, refusing a value sent over a literal's bounds (a string
+  over 64 KiB) as `Input` refuses a field. `<action>` is an `ActionName`:
+  letters, digits, `_` and `-`. Unlike `ToolSpec`, it carries no Dart
   function, output or `concurrent` flag: the action renders what the model
   reads, and the airlock decides every effect.
 - `Field<T>`: a name, a `Schema<T>` and a description. Required as made;

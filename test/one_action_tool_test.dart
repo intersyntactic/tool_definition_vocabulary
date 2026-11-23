@@ -6,13 +6,18 @@ import 'package:is_tools_api/is_tools_api.dart';
 /// [json] as it arrives over the wire.
 JsonObject sent(JsonObject json) => .decode(jsonEncode(json));
 
+enum Mode { list, stage }
+
 void main() {
-  final input = Input.fields4(
+  final input = Input.fields7(
     Field('name', .string(minLength: 1), description: 'The file name.'),
     Field.orDefault('offset', .integer(minimum: 0), 0),
+    Field.orDefault('mode', .choice(Mode.values), Mode.list),
     Field.optional('note', .string()),
     Field('tags', .list(.string())),
-    (a, b, c, d) => (a, b, c, d),
+    Field('weight', .number()),
+    Field('at', .object(.field(Field('line', .integer())))),
+    (a, b, c, d, e, f, g) => (a, b, c, d, e, f, g),
   );
   OneActionTool readDocument({
     List<ActionArgument>? arguments,
@@ -24,7 +29,7 @@ void main() {
     description: 'Reads a Word document.',
     input: input,
     bound: bound ?? {'drive': .text('b!xyz'), 'folder': .text('01abc')},
-    action: action,
+    action: .of(action),
     arguments:
         arguments ??
         [
@@ -32,12 +37,18 @@ void main() {
           const BoundReference('folder'),
           const InputReference('name'),
           const InputReference('offset'),
-          const InputReference('tags'),
+          const InputReference('mode'),
           Literal.integer(5000),
           Literal.text(r'$budget.docx'),
           Literal.boolean(true),
         ],
   );
+  const call = <String, Object?>{
+    'name': 'a.docx',
+    'tags': ['x'],
+    'weight': 0.5,
+    'at': {'line': 1},
+  };
 
   test('the wire shape is one object, steps a single propose', () {
     expect(
@@ -46,7 +57,7 @@ void main() {
       '"input_schema":${jsonEncode(input.schema)},'
       '"bound":{"drive":"b!xyz","folder":"01abc"},'
       '"steps":["propose","readDocument",["bound","drive"],["bound","folder"],'
-      r'["input","name"],["input","offset"],["input","tags"],5000,"$budget.docx",true]}',
+      r'["input","name"],["input","offset"],["input","mode"],5000,"$budget.docx",true]}',
     );
   });
 
@@ -60,39 +71,63 @@ void main() {
 
   test('a call fills in bound values, input fields and defaults', () {
     final tool = OneActionTool.parse(sent(readDocument().toJson()))!;
-    expect(
-      tool.argumentsFor(
-        .of({
-          'name': 'a.docx',
-          'tags': ['x'],
-        }),
-      ),
-      [
-        'b!xyz',
-        '01abc',
-        'a.docx',
-        0,
-        ['x'],
-        5000,
-        r'$budget.docx',
-        true,
-      ],
-    );
+    expect(tool.argumentsFor(const .of(call)), [
+      'b!xyz',
+      '01abc',
+      'a.docx',
+      0,
+      'list',
+      5000,
+      r'$budget.docx',
+      true,
+    ]);
   });
 
-  test('a call the input refuses is refused as the input refuses it', () {
-    expect(
-      () => readDocument().argumentsFor(.of({'name': '', 'tags': <Object?>[]})),
-      throwsA(
-        isA<JsonFieldException>().having((e) => e.field, 'field', 'name'),
+  group('a call is refused, naming the field', () {
+    final cases = <String, (Map<String, Object?>, String, String)>{
+      'one the input refuses': (
+        {...call, 'name': ''},
+        'name',
+        'a string of at least 1 character',
       ),
-    );
+      'a string over 64 KiB': (
+        {...call, 'name': 'x' * (64 * 1024 + 1)},
+        'name',
+        'a string of at most 64 KiB in UTF-8',
+      ),
+      'a number past 2^53': (
+        {...call, 'offset': 9007199254740992},
+        'offset',
+        'a whole number within ±2^53',
+      ),
+    };
+    for (final MapEntry(key: label, value: (json, field, wanted))
+        in cases.entries) {
+      test(label, () {
+        expect(
+          () => readDocument().argumentsFor(.of(json)),
+          throwsA(
+            isA<JsonFieldException>()
+                .having((e) => e.field, 'field', field)
+                .having((e) => e.wanted, 'wanted', wanted),
+          ),
+        );
+      });
+    }
   });
 
   group('a tool made in Dart with a bad reference throws', () {
     final cases = <String, OneActionTool Function()>{
       'an optional field': () =>
           readDocument(arguments: [const InputReference('note')]),
+      'a list field': () =>
+          readDocument(arguments: [const InputReference('tags')]),
+      'a number field': () =>
+          readDocument(arguments: [const InputReference('weight')]),
+      'an object field': () =>
+          readDocument(arguments: [const InputReference('at')]),
+      'an action name with a space': () =>
+          readDocument(action: 'read document'),
       'a field the input lacks': () =>
           readDocument(arguments: [const InputReference('size')]),
       'a bound value not set': () =>
@@ -154,6 +189,23 @@ void main() {
       'a reference to an optional field': withSteps([
         ['input', 'note'],
       ]),
+      'a reference to a list field': withSteps([
+        ['input', 'tags'],
+      ]),
+      'a reference to a number field': withSteps([
+        ['input', 'weight'],
+      ]),
+      'a reference to an object field': withSteps([
+        ['input', 'at'],
+      ]),
+      'an action name with a space': {
+        ...good,
+        'steps': ['propose', 'read document'],
+      },
+      'an empty action name': {
+        ...good,
+        'steps': ['propose', ''],
+      },
       'a reference to an unbound value': withSteps([
         ['bound', 'site'],
       ]),
@@ -177,7 +229,22 @@ void main() {
     expect(Literal.integer(-9007199254740991).json, -9007199254740991);
   });
 
-  test('the fields every read gives a value for', () {
-    expect(input.namesAlwaysRead, {'name', 'offset', 'tags'});
+  test('the fields every read gives a string, whole number or boolean', () {
+    expect(input.namesAlwaysReadAsStringIntegerOrBoolean, {
+      'name',
+      'offset',
+      'mode',
+    });
+  });
+
+  test('an action name is letters, digits, _ and -', () {
+    expect(ActionName.parse('make-web-requests')?.text, 'make-web-requests');
+    expect(
+      ActionName.parse('docx_to_Passage2'),
+      ActionName.of('docx_to_Passage2'),
+    );
+    for (final bad in ['', 'a b', 'a/b', 'a.b', ' a']) {
+      expect(ActionName.parse(bad), isNull, reason: bad);
+    }
   });
 }

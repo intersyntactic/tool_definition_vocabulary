@@ -3,7 +3,7 @@ description: >-
   An intersyntactic tool's definition, as it is offered to a model: its
   name, description, input and output, and the types of what a call takes
   and returns.
-version: 0.4.0
+version: 0.5.0
 repository: https://github.com/intersyntactic/tools_api
 
 environment:
@@ -11,6 +11,7 @@ environment:
 
 dependencies:
   checked_json: ^0.2.1
+  is_model_vocabulary: ^0.1.0
   is_sign_in_vocabulary: ^0.1.0
   is_web_address_vocabulary: ^0.1.1
 

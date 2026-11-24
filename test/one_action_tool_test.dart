@@ -12,13 +12,12 @@ void main() {
     WebPath.parse('/v1.0/drives/b!xyz/items/01abc/children')!,
     SignIn.parse('cam-bot')!,
   );
-  OneActionTool listCaseFolder({ToolAction? action, String name = 'list'}) =>
-      .of(
-        name: name,
-        description: 'Lists the case folder.',
-        input: Input.none,
-        action: action ?? listing,
-      );
+  OneActionTool listCaseFolder({ToolAction? action}) => .of(
+    name: ToolName.of('list'),
+    description: 'Lists the case folder.',
+    input: Input.none,
+    action: action ?? listing,
+  );
 
   test('the wire shape is one object, steps a single propose of a fetch', () {
     expect(
@@ -55,8 +54,12 @@ void main() {
     );
   });
 
-  test('a tool with an empty name is refused when made', () {
-    expect(() => listCaseFolder(name: ''), throwsArgumentError);
+  test('what the model is offered is the name, description and schema', () {
+    final tool = listCaseFolder();
+    final OfferedTool(:name, :description, :inputSchema) = tool.offered;
+    expect(name, tool.name);
+    expect(description, tool.description);
+    expect(jsonEncode(inputSchema), jsonEncode(tool.input.schema));
   });
 
   group('JSON a tool never writes is not read', () {
@@ -76,6 +79,8 @@ void main() {
       'a concurrent flag': {...good, 'concurrent': true},
       'no steps': {...good}..remove('steps'),
       'an empty name': {...good, 'name': ''},
+      'a name with a dot': {...good, 'name': 'web.fetch'},
+      'a name of 65 characters': {...good, 'name': 'a' * 65},
       'a name that is not a string': {...good, 'name': 3},
       'an input schema an Input never writes': {
         ...good,

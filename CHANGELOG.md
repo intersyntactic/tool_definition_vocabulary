@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.0
+
+- `OneActionTool`'s action is a `ToolAction`, a closed set of what a tool
+  may propose, instead of a free-text `ActionName`. Its one case, `Fetch`,
+  holds an `Origin` and `WebPath` from is_web_address_vocabulary and a
+  `SignIn` from is_sign_in_vocabulary, all fixed when the tool is made. On
+  the wire: `["propose", "fetch", <origin>, <path>, <sign-in>]`.
+- Removed from `OneActionTool`, since no stage-1 tool uses them: `bound`,
+  `arguments`, `argumentsFor`, `ActionArgument`, `BoundReference`,
+  `InputReference`, `Literal` and `ActionName`. A tool's JSON has no
+  `bound` key, and `parse` refuses one that does. Also removed:
+  `Input.namesAlwaysReadAsStringIntegerOrBoolean`, which only they used.
+- Re-exports `Origin`, `WebPath` and `SignIn`, which `Fetch` takes.
+- Depends on is_web_address_vocabulary and is_sign_in_vocabulary, and on
+  nothing else of intersyntactic's but checked_json. A test walks pub's
+  resolved graph and fails if anything needed at run time is not one of
+  those, named one by one.
+
 ## 0.3.0
 
 - `Input.parse` reads back the JSON Schema that `Input.schema` writes, as an

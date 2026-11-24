@@ -2,9 +2,12 @@
 
 An intersyntactic tool's definition, as it is offered to a model: its
 name, description and input, and the types of what a call takes and returns.
-A tool package depends on this, and on nothing else of intersyntactic's: not
-the model client, not the airlock, not the path checks. So a tool's
-definition can be written, read and tested without any of them.
+A tool package depends on this, and on nothing of intersyntactic's but its
+vocabularies: not the model client, not the airlock, not the path checks.
+So a tool's definition can be written, read and tested without any of them.
+The vocabularies it needs, is_web_address_vocabulary and
+is_sign_in_vocabulary, are named one by one in its own tests, which fail if
+anything this package needs at run time is not one of them or checked_json.
 
 ```dart
 import 'package:is_tools_api/is_tools_api.dart';
@@ -54,19 +57,15 @@ so the rules the model is told are the rules it is held to.
   default in place of an absent field, nothing for an absent optional one.
   A schema an `Input` does not write gives null, never a best guess.
 - `OneActionTool`: a tool sent as data whose steps are one proposed action.
-  On the wire it is `name`, `description`, `input_schema`, `bound` (values a
-  person fixed, such as a drive's id) and `steps`:
-  `["propose", <action>, <argument>…]`, where each argument is
-  `["bound", k]`, `["input", k]` or a literal string, whole number or
-  boolean, so every string is literal text. A reference is checked when the
-  tool is made: an input reference may name only a string, whole number or
-  boolean field that is required or has a default, so no argument is ever
-  missing from a call or outside the literal set. `argumentsFor` fills in one
-  call's arguments, refusing a value sent over a literal's bounds (a string
-  over 64 KiB) as `Input` refuses a field. `<action>` is an `ActionName`:
-  letters, digits, `_` and `-`. Unlike `ToolSpec`, it carries no Dart
-  function, output or `concurrent` flag: the action renders what the model
-  reads, and the airlock decides every effect.
+  On the wire it is `name`, `description`, `input_schema` and `steps`, one
+  JSON spelling per tool. The action is a `ToolAction`, a closed set of what
+  a tool may propose, which the agent loop turns into the airlock's own
+  program in one exhaustive switch. It has one case so far, `Fetch`: an
+  `Origin`, a `WebPath` and a `SignIn`, all fixed when the tool is made and
+  written `["propose", "fetch", <origin>, <path>, <sign-in>]`. The model's
+  input reaches nothing in the action. Unlike `ToolSpec`, it carries no
+  Dart function, output or `concurrent` flag: the response is read as text,
+  and the airlock decides every effect.
 - `Field<T>`: a name, a `Schema<T>` and a description. Required as made;
   `Field.optional` reads an absent or null field as null, and
   `Field.orDefault` reads it as a value the schema also shows the model as

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:checked_json/checked_json.dart';
 import 'package:test/test.dart';
 
 /// Every URI a source's directives name, in every branch, as written.
@@ -36,17 +37,54 @@ const _allowedSdk = {
   'dart:typed_data',
 };
 
+/// The only packages this one may need at run time: checked_json and
+/// vocabularies, each named, so admitting one is a reviewed change rather
+/// than a suffix that matches.
+const _allowedPackages = {
+  'checked_json',
+  'is_sign_in_vocabulary',
+  'is_web_address_vocabulary',
+};
+
 bool _allowed(String target) {
   final uri = Uri.parse(target);
   return switch (uri.scheme) {
     'dart' => _allowedSdk.contains(target),
-    'package' => const {
-      'checked_json',
+    'package' => {
+      ..._allowedPackages,
       'is_tools_api',
     }.contains(uri.pathSegments.first),
     '' => !uri.isAbsolute && !uri.pathSegments.contains('..'),
     _ => false,
   };
+}
+
+/// Every package this one needs at run time, from pub's resolved graph:
+/// its direct dependencies that are not dev ones, and everything they need.
+Set<String> _runtimePackages() {
+  final result = Process.runSync(Platform.resolvedExecutable, [
+    'pub',
+    'deps',
+    '--json',
+  ]);
+  if (result.exitCode != 0) throw StateError('pub deps: ${result.stderr}');
+  final graph = JsonObject.decode('${result.stdout}');
+  final packages = {
+    for (final p in graph.objects('packages')) p.string('name'): p,
+  };
+  final root = packages[graph.string('root')]!;
+  final found = <String>{};
+  final toVisit = [
+    for (final name in root.strings('dependencies'))
+      if (packages[name]!.string('kind') == 'direct') name,
+  ];
+  while (toVisit.isNotEmpty) {
+    final name = toVisit.removeLast();
+    if (found.add(name)) {
+      toVisit.addAll(packages[name]!.strings('dependencies'));
+    }
+  }
+  return found;
 }
 
 void main() {
@@ -71,4 +109,13 @@ void main() {
           'is_tools_api supplies contracts, not clients, runners or effects',
     );
   });
+
+  test(
+    'everything needed at run time is checked_json or a named vocabulary',
+    () {
+      // A vocabulary that picked up an effects package would pass the import
+      // check above, since only this package's own imports are read there.
+      expect(_runtimePackages().difference(_allowedPackages), isEmpty);
+    },
+  );
 }

@@ -32,17 +32,6 @@ final class Input<I> {
   /// The JSON Schema of the object, built from the fields and frozen.
   late final JsonObject schema = JsonObject.of(_schema()).deepFrozen();
 
-  /// The names of the fields every [read] gives a string, a whole number or
-  /// a boolean for: the required ones and the ones with a default, of
-  /// [Schema.string], [Schema.choice], [Schema.integer] or [Schema.boolean].
-  late final Set<String> namesAlwaysReadAsStringIntegerOrBoolean =
-      Set.unmodifiable({
-        for (final f in _fields)
-          if (f._presence != _Presence.optional &&
-              f._readsStringIntegerOrBoolean)
-            f.name,
-      });
-
   Map<String, Object?> _schema() => {
     'type': 'object',
     'properties': {for (final f in _fields) f.name: f._property},
@@ -287,15 +276,6 @@ final class Field<T> {
   final _Presence _presence;
   final T Function(Object? value, String at) _readPresent;
   final T Function(String at) _readAbsent;
-
-  /// Whether a value of this field is a string, a whole number or a boolean,
-  /// by the `type` its own schema shows.
-  bool get _readsStringIntegerOrBoolean => switch (_JsonType.of(
-    JsonObject.of(_property),
-  )) {
-    _JsonType.string || _JsonType.integer || _JsonType.boolean => true,
-    _JsonType.number || _JsonType.array || _JsonType.object || null => false,
-  };
 
   T _readIn(JsonObject json, String at) => switch (json.raw(name)) {
     null => _readAbsent(at),

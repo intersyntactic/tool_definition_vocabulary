@@ -103,11 +103,7 @@ sealed class ToolAction {
       final String path,
       final signIn,
     ] =>
-      switch ((
-        Origin.parse(origin),
-        path.isEmpty ? WebPath.root : WebPath.parse(path),
-        _signIn(signIn),
-      )) {
+      switch ((Origin.parse(origin), WebPath.parse(path), _signIn(signIn))) {
         (final origin?, final path?, final signIn?) => Fetch(
           origin,
           path,

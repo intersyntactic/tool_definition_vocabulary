@@ -1,4 +1,5 @@
 import 'package:checked_json/checked_json.dart';
+import 'package:is_model_vocabulary/is_model_vocabulary.dart';
 import 'package:is_sign_in_vocabulary/is_sign_in_vocabulary.dart';
 import 'package:is_web_address_vocabulary/is_web_address_vocabulary.dart';
 
@@ -14,7 +15,7 @@ import 'input.dart';
 final class OneActionTool {
   OneActionTool._(this.name, this.description, this.input, this.action);
 
-  final String name;
+  final ToolName name;
   final String description;
 
   /// What a call takes, read back from its schema, so the schema the model
@@ -24,23 +25,22 @@ final class OneActionTool {
   /// What a call to this tool proposes.
   final ToolAction action;
 
-  /// The tool made in Dart, from the [input] its module built. An
-  /// [ArgumentError] for an empty [name].
+  /// The tool made in Dart, from the [input] its module built.
   factory OneActionTool.of({
-    required String name,
+    required ToolName name,
     required String description,
     required Input<Object?> input,
     required ToolAction action,
-  }) {
-    if (name.isEmpty) throw ArgumentError.value(name, 'name', 'is empty');
-    // An Input's own schema is always one Input.parse reads.
-    return OneActionTool._(
-      name,
-      description,
-      Input.parse(input.schema)!,
-      action,
-    );
-  }
+  }) =>
+      // An Input's own schema is always one Input.parse reads.
+      OneActionTool._(name, description, Input.parse(input.schema)!, action);
+
+  /// What the model is shown of this tool.
+  OfferedTool get offered => OfferedTool(
+    name: name,
+    description: description,
+    inputSchema: input.schema,
+  );
 
   /// The tool [json] describes, as [toJson] writes it; null for any other
   /// object.
@@ -49,18 +49,17 @@ final class OneActionTool {
       return null;
     }
     return switch ((
-      json.raw('name'),
+      _toolName(json.raw('name')),
       json.raw('description'),
       JsonObject.parse(json.raw('input_schema')),
       json.raw('steps'),
     )) {
       (
-        final String name,
+        final name?,
         final String description,
         final schema?,
         final List<Object?> steps,
-      )
-          when name.isNotEmpty =>
+      ) =>
         switch ((Input.parse(schema), ToolAction._parse(steps))) {
           (final input?, final action?) => OneActionTool._(
             name,
@@ -77,12 +76,16 @@ final class OneActionTool {
   static const _keys = {'name', 'description', 'input_schema', 'steps'};
 
   JsonObject toJson() => .of({
-    'name': name,
+    'name': name.value,
     'description': description,
     'input_schema': input.schema,
     'steps': action._steps,
   });
 }
+
+/// The tool name [json] is, or null if it is none.
+ToolName? _toolName(Object? json) =>
+    json is String ? ToolName.parse(json) : null;
 
 /// What a tool may propose. Each case is one kind of action the airlock
 /// decides, and the agent loop turns each into the airlock's own program in
@@ -100,11 +103,7 @@ sealed class ToolAction {
       final String path,
       final signIn,
     ] =>
-      switch ((
-        Origin.parse(origin),
-        path.isEmpty ? WebPath.root : WebPath.parse(path),
-        _signIn(signIn),
-      )) {
+      switch ((Origin.parse(origin), WebPath.parse(path), _signIn(signIn))) {
         (final origin?, final path?, final signIn?) => Fetch(
           origin,
           path,

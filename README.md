@@ -19,7 +19,7 @@ final class CloseIssue {
 }
 
 final closeIssue = ToolSpec<CloseIssue, String>(
-  name: 'issue_close',
+  name: ToolName.of('issue_close'),
   description: 'Close an issue, saying why.',
   input: .fields2(
     Field('number', .integer(minimum: 1), description: 'The issue.'),
@@ -36,6 +36,10 @@ so the rules the model is told are the rules it is held to.
 
 ## What is here
 
+- `ToolName` and `OfferedTool`, from is_model_vocabulary: a tool's name,
+  1 to 64 of `a-zA-Z0-9_-` (`ToolName.of` for a name written in Dart,
+  `ToolName.parse` for one read back), and what the model is shown of a
+  tool. Both `ToolSpec` and `OneActionTool` give theirs as `offered`.
 - `ToolSpec<I, O>`: a tool's name, description and `input`, and the types of
   what a call takes, `I`, and returns, `O`. `toJson()` is the definition in
   the Messages API's tool shape, and `wireBytes` its size in a request.

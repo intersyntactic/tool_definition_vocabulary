@@ -11,6 +11,7 @@ library;
 import 'dart:convert';
 
 import 'package:checked_json/checked_json.dart';
+import 'package:is_model_vocabulary/is_model_vocabulary.dart';
 
 import 'src/input.dart';
 import 'src/output.dart';
@@ -20,6 +21,8 @@ import 'src/output.dart';
 // each package is not this library's to hand on.
 export 'package:checked_json/checked_json.dart'
     show JsonFieldException, JsonObject;
+export 'package:is_model_vocabulary/is_model_vocabulary.dart'
+    show OfferedTool, ToolName;
 export 'package:is_sign_in_vocabulary/is_sign_in_vocabulary.dart' show SignIn;
 export 'package:is_web_address_vocabulary/is_web_address_vocabulary.dart'
     show Origin, WebPath;
@@ -39,7 +42,7 @@ export 'src/output.dart';
 /// module can be bound to. [O] itself is never sent to the model; the
 /// Messages API's tool shape has no return type.
 class ToolSpec<I, O> {
-  final String name;
+  final ToolName name;
   final String description;
 
   /// What a call takes: the schema the model is shown, and the reader of
@@ -65,9 +68,16 @@ class ToolSpec<I, O> {
   /// [input]'s JSON Schema, frozen all the way down.
   JsonObject get inputSchema => input.schema;
 
+  /// What the model is shown of this tool.
+  OfferedTool get offered => OfferedTool(
+    name: name,
+    description: description,
+    inputSchema: inputSchema,
+  );
+
   /// The definition in the Messages API's tool shape.
   JsonObject toJson() => .of({
-    'name': name,
+    'name': name.value,
     'description': description,
     'input_schema': inputSchema,
   });

@@ -8,7 +8,7 @@ enum Mode { list, stage }
 void main() {
   test('tool definition wire shape excludes execution metadata', () {
     final spec = ToolSpec<String, String>(
-      name: 'file_read',
+      name: ToolName.of('file_read'),
       description: 'Read a file.',
       input: .field(
         Field('path', .string(minLength: 1), description: 'From the root.'),
@@ -23,6 +23,11 @@ void main() {
         '"required":["path"],"additionalProperties":false}}';
     expect(jsonEncode(spec.toJson()), wire);
     expect(spec.wireBytes, utf8.encode(wire).length);
+
+    final OfferedTool(:name, :description, :inputSchema) = spec.offered;
+    expect(name, spec.name);
+    expect(description, spec.description);
+    expect(jsonEncode(inputSchema), jsonEncode(spec.inputSchema));
   });
 
   test('each kind of field is shown to the model as JSON Schema', () {

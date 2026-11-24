@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.0
+
+- A tool's name is a `ToolName` from is_model_vocabulary, in both
+  `ToolSpec.name` and `OneActionTool.name`: 1 to 64 of `a-zA-Z0-9_-`, the
+  rule the Messages API and the Responses API impose. Make one with
+  `ToolName.of('issue_close')`. `OneActionTool.of` no longer throws for an
+  empty name, since a `ToolName` can't be one, and `OneActionTool.parse`
+  refuses a name that breaks the rule.
+- `ToolSpec.offered` and `OneActionTool.offered` give the `OfferedTool`
+  the model is shown: name, description and input schema, built from the
+  definition so the two can't differ.
+- Re-exports `ToolName` and `OfferedTool`. Depends on is_model_vocabulary,
+  which the dependency test now admits by name.
+- Depends on is_web_address_vocabulary ^0.1.2, whose `WebPath.parse('')`
+  gives `WebPath.root`, so `OneActionTool.parse` reads a fetch of an
+  origin's root with no special case of its own. The wire is unchanged.
+
 ## 0.4.0
 
 - `OneActionTool`'s action is a `ToolAction`, a closed set of what a tool

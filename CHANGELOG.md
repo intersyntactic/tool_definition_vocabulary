@@ -11,8 +11,9 @@
 - `ToolSpec.offered` and `OneActionTool.offered` give the `OfferedTool`
   the model is shown: name, description and input schema, built from the
   definition so the two can't differ.
-- Re-exports `ToolName` and `OfferedTool`. Depends on is_model_vocabulary,
-  which the dependency test now admits by name.
+- Re-exports `ToolName` and `OfferedTool`. Depends on is_model_vocabulary
+  ^0.2.0, the version is_effects 0.15 needs, which the dependency test now
+  admits by name.
 - Depends on is_web_address_vocabulary ^0.1.2, whose `WebPath.parse('')`
   gives `WebPath.root`, so `OneActionTool.parse` reads a fetch of an
   origin's root with no special case of its own. The wire is unchanged.

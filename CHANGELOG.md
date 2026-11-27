@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0
+
+- The package is `is_tool_definition_vocabulary`, in the repository
+  intersyntactic/tool_definition_vocabulary. It was `is_tools_api` up to
+  0.5.0. It holds only types and depends only on vocabularies and
+  checked_json, so it is a vocabulary, and what it holds is one tool's
+  definition. Depend on `is_tool_definition_vocabulary` and import
+  `package:is_tool_definition_vocabulary/is_tool_definition_vocabulary.dart`.
+- On checked_json ^0.3.0 and is_model_vocabulary ^0.3.0. Breaking because
+  `JsonObject` and `JsonFieldException` are re-exported from checked_json,
+  whose `JsonObject.decode` now refuses text that names a key twice in one
+  object or has an integer past 2^53 - 1. Nothing in this package decodes
+  text, so its own behaviour is unchanged.
+
 ## 0.5.0
 
 - A tool's name is a `ToolName` from is_model_vocabulary, in both

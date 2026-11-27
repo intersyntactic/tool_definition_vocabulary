@@ -53,7 +53,7 @@ bool _allowed(String target) {
     'dart' => _allowedSdk.contains(target),
     'package' => {
       ..._allowedPackages,
-      'is_tools_api',
+      'is_tool_definition_vocabulary',
     }.contains(uri.pathSegments.first),
     '' => !uri.isAbsolute && !uri.pathSegments.contains('..'),
     _ => false,
@@ -106,8 +106,7 @@ void main() {
     expect(
       violations,
       isEmpty,
-      reason:
-          'is_tools_api supplies contracts, not clients, runners or effects',
+      reason: 'is_tool_definition_vocabulary supplies contracts, not clients, runners or effects',
     );
   });
 

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:is_tools_api/is_tools_api.dart';
+import 'package:is_tool_definition_vocabulary/is_tool_definition_vocabulary.dart';
 
 final echo = ToolSpec<String, String>(
   name: ToolName.of('echo'),

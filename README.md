@@ -107,5 +107,5 @@ pub.dev has one namespace for everyone, so the package is
 It is a vocabulary, not one program's interface: it holds only types, and
 depends only on other vocabularies and checked_json. What it holds is one
 tool's definition. What a call is (its id, the name the model asked for)
-is in is_model_vocabulary, and what handling a call does is in
-is_tool_call_handler.
+is in is_model_vocabulary, and what a call does is decided by the program
+that runs the tool.

@@ -1,4 +1,4 @@
-# is_tools_api
+# is_tool_definition_vocabulary
 
 An intersyntactic tool's definition, as it is offered to a model: its
 name, description and input, and the types of what a call takes and returns.
@@ -10,7 +10,7 @@ is_sign_in_vocabulary, are named one by one in its own tests, which fail if
 anything this package needs at run time is not one of them or checked_json.
 
 ```dart
-import 'package:is_tools_api/is_tools_api.dart';
+import 'package:is_tool_definition_vocabulary/is_tool_definition_vocabulary.dart';
 
 final class CloseIssue {
   const CloseIssue(this.number, this.comment);
@@ -100,6 +100,12 @@ so the rules the model is told are the rules it is held to.
 
 ## The name
 
-pub.dev has one namespace for everyone, so the package is `is_tools_api` there
-and in every import. The repository is
-[intersyntactic/tools_api](https://github.com/intersyntactic/tools_api).
+pub.dev has one namespace for everyone, so the package is
+`is_tool_definition_vocabulary` there and in every import. The repository is
+[intersyntactic/tool_definition_vocabulary](https://github.com/intersyntactic/tool_definition_vocabulary).
+
+It is a vocabulary, not one program's interface: it holds only types, and
+depends only on other vocabularies and checked_json. What it holds is one
+tool's definition. What a call is (its id, the name the model asked for)
+is in is_model_vocabulary, and what handling a call does is in
+is_tool_call_handler.

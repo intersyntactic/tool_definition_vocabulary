@@ -1,10 +1,10 @@
-name: is_tools_api
+name: is_tool_definition_vocabulary
 description: >-
   An intersyntactic tool's definition, as it is offered to a model: its
   name, description, input and output, and the types of what a call takes
   and returns.
 version: 0.6.0
-repository: https://github.com/intersyntactic/tools_api
+repository: https://github.com/intersyntactic/tool_definition_vocabulary
 
 environment:
   sdk: ^3.13.0

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0
+
+- On is_model_vocabulary ^0.5.0. Breaking because `OfferedTool` and
+  `ToolName` are re-exported from it, so a package can't use this version
+  together with is_model_vocabulary 0.4. Nothing in this package's own API
+  changed.
+
 ## 0.7.0
 
 - On checked_json ^0.4.0 and is_model_vocabulary ^0.4.0. Breaking because `JsonObject` is re-exported

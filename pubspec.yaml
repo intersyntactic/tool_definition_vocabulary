@@ -3,15 +3,15 @@ description: >-
   An intersyntactic tool's definition, as it is offered to a model: its
   name, description, input and output, and the types of what a call takes
   and returns.
-version: 0.6.0
+version: 0.7.0
 repository: https://github.com/intersyntactic/tool_definition_vocabulary
 
 environment:
   sdk: ^3.13.0
 
 dependencies:
-  checked_json: ^0.3.0
-  is_model_vocabulary: ^0.3.0
+  checked_json: ^0.4.0
+  is_model_vocabulary: ^0.4.0
   is_sign_in_vocabulary: ^0.1.0
   is_web_address_vocabulary: ^0.1.2
 

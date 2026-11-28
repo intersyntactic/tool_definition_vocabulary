@@ -29,8 +29,8 @@ final class Input<I> {
   /// field's value at the field's own type, so no value is cast.
   final I Function(T Function<T>(Field<T> field) read) _make;
 
-  /// The JSON Schema of the object, built from the fields and frozen.
-  late final JsonObject schema = JsonObject.of(_schema()).deepFrozen();
+  /// The JSON Schema of the object, built from the fields.
+  late final JsonObject schema = JsonObject.of(_schema());
 
   Map<String, Object?> _schema() => {
     'type': 'object',
@@ -102,8 +102,7 @@ final class Input<I> {
     }
     return Input._(
       fields,
-      (read) =>
-          JsonObject.unmodifiable({for (final f in fields) f.name: ?read(f)}),
+      (read) => JsonObject.of({for (final f in fields) f.name: ?read(f)}),
     );
   }
 

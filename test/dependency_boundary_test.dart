@@ -43,6 +43,7 @@ const _allowedSdk = {
 const _allowedPackages = {
   'checked_json',
   'is_model_vocabulary',
+  'is_outcome_vocabulary',
   'is_sign_in_vocabulary',
   'is_web_address_vocabulary',
 };

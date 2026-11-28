@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0
+
+- On checked_json ^0.4.0. Breaking because `JsonObject` is re-exported
+  from checked_json, where it is now a `final class`: nothing can change
+  one, two are equal when their fields are equal, `JsonObject.of` can't be
+  `const`, and a plain `Map` from `jsonDecode` is not a `JsonObject` (read
+  one with `JsonObject.parse`). `Input.schema` and the object `Input.read`
+  builds are the same values as before.
+
 ## 0.6.0
 
 - The package is `is_tool_definition_vocabulary`, in the repository

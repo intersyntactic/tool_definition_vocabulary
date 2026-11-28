@@ -10,7 +10,7 @@ void main() {
   );
 
   test('each field is read at its own type', () {
-    expect(input.read(const .of({'name': 'x', 'count': 2, 'dry': true})), (
+    expect(input.read(.of({'name': 'x', 'count': 2, 'dry': true})), (
       'x',
       2,
       true,
@@ -20,7 +20,7 @@ void main() {
   test('of two bad fields, the one listed first is reported', () {
     // `dry` comes first in the object; `count` comes first in the Input.
     expect(
-      () => input.read(const .of({'dry': 'yes', 'name': 'x', 'count': -1})),
+      () => input.read(.of({'dry': 'yes', 'name': 'x', 'count': -1})),
       throwsA(
         isA<JsonFieldException>().having((e) => e.field, 'field', 'count'),
       ),

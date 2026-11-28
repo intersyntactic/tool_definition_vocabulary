@@ -5,9 +5,9 @@ name, description and input, and the types of what a call takes and returns.
 A tool package depends on this, and on nothing of intersyntactic's but its
 vocabularies: not the model client, not the airlock, not the path checks.
 So a tool's definition can be written, read and tested without any of them.
-The vocabularies it needs, is_web_address_vocabulary and
-is_sign_in_vocabulary, are named one by one in its own tests, which fail if
-anything this package needs at run time is not one of them or checked_json.
+The vocabulary it needs, is_model_vocabulary, is named in its own tests,
+which fail if anything this package needs at run time is not a named
+vocabulary or checked_json.
 
 ```dart
 import 'package:is_tool_definition_vocabulary/is_tool_definition_vocabulary.dart';
@@ -62,14 +62,25 @@ so the rules the model is told are the rules it is held to.
   A schema an `Input` does not write gives null, never a best guess.
 - `OneActionTool`: a tool sent as data whose steps are one proposed action.
   On the wire it is `name`, `description`, `input_schema` and `steps`, one
-  JSON spelling per tool. The action is a `ToolAction`, a closed set of what
-  a tool may propose, which the agent loop turns into the airlock's own
-  program in one exhaustive switch. It has one case so far, `Fetch`: an
-  `Origin`, a `WebPath` and a `SignIn`, all fixed when the tool is made and
-  written `["propose", "fetch", <origin>, <path>, <sign-in>]`. The model's
-  input reaches nothing in the action. Unlike `ToolSpec`, it carries no
-  Dart function, output or `concurrent` flag: the response is read as text,
-  and the airlock decides every effect.
+  JSON spelling per tool, where `steps` is
+  `["propose", <program>, <expression>]`. The program is an
+  `AirlockProgramName`, named as the airlock names it, and the expression
+  builds that program's input as the airlock writes it in a proposal. So
+  this package knows no program: the airlock reads the filled input with
+  the program's own reader and refuses it there. `proposedFor(call)` reads
+  a call through the tool's `Input` and gives the program and its input
+  with every `["input", <field>]` filled in; each such field is one every
+  read gives a value for. A tool stored before steps held an expression,
+  `["propose", "fetch", <origin>, <path>, <sign-in>]`, is read as a fetch
+  keeping the response as text, and written back as it was stored. Unlike
+  `ToolSpec`, it carries no Dart function, output or `concurrent` flag:
+  the airlock decides every effect.
+- `Expression`: the part of TEL, the tool expression language, that a
+  `OneActionTool` builds an input with. A string, whole number or boolean
+  is itself; every array is a form: `["input", <field>]`,
+  `["record", <key>, <expression>, …]` or `["list", <expression>…]`. So no
+  literal is read as a reference. Bounded as TEL bounds it: 64 deep,
+  64 KiB a string, 1,000 items a list, ±2^53 − 1.
 - `Field<T>`: a name, a `Schema<T>` and a description. Required as made;
   `Field.optional` reads an absent or null field as null, and
   `Field.orDefault` reads it as a value the schema also shows the model as

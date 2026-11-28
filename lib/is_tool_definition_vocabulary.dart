@@ -23,13 +23,11 @@ export 'package:checked_json/checked_json.dart'
     show JsonFieldException, JsonObject;
 export 'package:is_model_vocabulary/is_model_vocabulary.dart'
     show OfferedTool, ToolName;
-export 'package:is_sign_in_vocabulary/is_sign_in_vocabulary.dart' show SignIn;
-export 'package:is_web_address_vocabulary/is_web_address_vocabulary.dart'
-    show Origin, WebPath;
 
 export 'src/input.dart';
 export 'src/one_action_tool.dart';
 export 'src/output.dart';
+export 'src/expression.dart';
 
 /// One tool's definition: its name, description, [input] and [output], and
 /// the types of what a call takes, [I], and returns, [O].

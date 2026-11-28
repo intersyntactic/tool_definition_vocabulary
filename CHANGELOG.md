@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.9.0
+
+- A `OneActionTool`'s steps are one proposal in the airlock's own format:
+  `["propose", <program>, <expression>]`. `program` is an `AirlockProgramName`
+  and `programInput` an `Expression` that builds that program's input as the
+  airlock writes it in a proposal, so this package knows no program and
+  the airlock's own reader checks the input. Breaking: `ToolAction`,
+  `Fetch` and `OneActionTool.action` are gone, and `OneActionTool.of`
+  takes `program` and `programInput`.
+- An expression may read the model's input: `["input", <field>]`, a field every
+  read of the tool's `Input` gives a value for, checked when the tool is
+  made or read. `OneActionTool.proposedFor(call)` reads a call and gives
+  the program and its filled input. `Input.namesAlwaysRead` names those
+  fields.
+- `Expression` is TEL's literals, `input`, `record` and `list`, bounded as TEL
+  bounds them.
+- A fetch stored as `["propose", "fetch", <origin>, <path>, <sign-in>]` is
+  still read, as a fetch keeping the response as text, and written back
+  exactly as stored. A malformed origin, path or sign-in in one is now
+  refused by the airlock when it is proposed, not when the tool is read.
+- No longer depends on is_web_address_vocabulary or is_sign_in_vocabulary,
+  and no longer re-exports `Origin`, `WebPath` or `SignIn`.
+
 ## 0.8.0
 
 - On is_model_vocabulary ^0.5.0. Breaking because `OfferedTool` and

@@ -42,6 +42,13 @@ final class Input<I> {
     'additionalProperties': false,
   };
 
+  /// The names of the fields every read gives a value for: the required
+  /// ones and the ones with a default.
+  late final Set<String> namesAlwaysRead = Set.unmodifiable({
+    for (final f in _fields)
+      if (f._presence != _Presence.optional) f.name,
+  });
+
   /// [input] as an [I]. A [JsonFieldException] naming the first field that
   /// is missing, of the wrong kind, outside its constraints, or not one of
   /// this input's fields.
